@@ -6,6 +6,9 @@
         "isEnabled": true,
         "excludedTypes": "Request"
       }
+    },
+    "logLevel": {
+        "Host.Triggers.DurableTask": "Warning"
     }
   },
   "extensionBundle": {
