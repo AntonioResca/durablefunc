@@ -4,6 +4,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import datetime
 
 import base64
 
@@ -90,3 +91,24 @@ def crea_grafico(nCluster: int) -> bytes:
 
 
     return img_base64
+
+# https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-timer
+@myApp.schedule(arg_name="myTimer", schedule="0 0 10,14,18 * * Monday-Friday")
+@myApp.durable_client_input(client_name="client")
+async def mytimer(myTimer: func.TimerRequest, client: df.DurableOrchestrationClient):
+    instances = await client.get_status_all()
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    one_hour_ago = now - datetime.timedelta(hours=1)
+
+    logging.info("Checking for old durable instances...")
+
+    purged = 0    
+    for instance in instances:
+        if instance._runtime_status.name in ["Completed", "Failed", "Terminated"]:
+            if instance.created_time < one_hour_ago:
+                await client.purge_instance_history(instance.instance_id)
+                purged += 1
+                logging.info(f"Purged instance {instance.instance_id}")
+
+    logging.info(f"Finished purge. Total purged: {purged}")
